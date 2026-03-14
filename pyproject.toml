@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "midman"
+version = "0.1.0"
+description = "CLI-first infrastructure assistant for safe diagnostics across SSH and management targets."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "OpenAI Codex" }
+]
+dependencies = [
+  "paramiko>=3.4.0",
+  "pydantic>=2.8.0",
+  "pyyaml>=6.0.1",
+  "rich>=13.7.0",
+  "textual>=0.70.0",
+  "typer>=0.12.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+]
+
+[project.scripts]
+midman = "midman.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["midman*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

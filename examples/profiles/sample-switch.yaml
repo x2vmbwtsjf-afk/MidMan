@@ -1,0 +1,10 @@
+name: sample-switch
+type: network
+host: 198.51.100.10
+port: 22
+username: netops
+auth:
+  password_env: MIDMAN_SWITCH_PASSWORD
+metadata:
+  vendor: generic
+

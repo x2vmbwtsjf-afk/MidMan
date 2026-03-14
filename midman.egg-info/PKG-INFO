@@ -1,0 +1,261 @@
+Metadata-Version: 2.4
+Name: midman
+Version: 0.1.0
+Summary: CLI-first infrastructure assistant for safe diagnostics across SSH and management targets.
+Author: OpenAI Codex
+License: MIT
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: paramiko>=3.4.0
+Requires-Dist: pydantic>=2.8.0
+Requires-Dist: pyyaml>=6.0.1
+Requires-Dist: rich>=13.7.0
+Requires-Dist: textual>=0.70.0
+Requires-Dist: typer>=0.12.3
+Provides-Extra: dev
+Requires-Dist: pytest>=8.2.0; extra == "dev"
+Dynamic: license-file
+
+# midman
+
+CLI infrastructure assistant for servers, networks, and management interfaces.
+
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Phase](https://img.shields.io/badge/status-Phase%201%20CLI%20MVP-lightgrey)
+
+## Overview
+
+`midman` is a CLI-first infrastructure assistant that connects natural language requests to safe diagnostic and management workflows. It is designed for engineers who work across Linux hosts, network devices, and management controllers and want a consistent interface for approved operational checks.
+
+In Phase 1, `midman` is intentionally terminal-only. There is no web UI, no hosted control plane, and no free-form remote shell. The current focus is a reliable local CLI that can parse operator intent, map that request to approved actions, validate safety constraints, and execute diagnostics over SSH or management reachability checks.
+
+## Key Features
+
+- CLI-first workflow built with Typer and Rich
+- Textual dashboard for interactive operations
+- AI-style, rule-based intent parser for common infrastructure requests
+- optional AI backend connection for OpenAI, Ollama, or cloud-compatible chat
+- SSH diagnostics with Paramiko for Linux and network targets
+- server and network checks backed by an explicit command catalog
+- safety validation layer with allowlist-only execution
+- YAML playbooks for repeatable diagnostic workflows
+- mock mode for local development, demos, and test runs
+- profiles for saved infrastructure targets
+
+## Architecture Overview
+
+`midman` is built around three main layers:
+
+1. `AI parser`
+   Interprets a user request such as `check cpu on server01` and maps it to a supported action.
+
+2. `CLI orchestrator`
+   Resolves profiles, selects approved commands, applies safety checks, runs playbooks, and formats results.
+
+3. `SSH / management layer`
+   Executes approved diagnostics on Linux and network targets over SSH and performs management endpoint reachability checks for iLO, iDRAC, and future BMC adapters.
+
+High-level flow:
+
+```text
+Natural language request
+        |
+        v
+Rule-based intent parser
+        |
+        v
+CLI orchestration + command catalog
+        |
+        v
+Safety validation
+        |
+        v
+SSH / management execution
+        |
+        v
+Structured terminal output
+```
+
+More detail is available in [docs/ARCHITECTURE.md](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/docs/ARCHITECTURE.md).
+
+## Example Usage
+
+Natural language request against a saved profile:
+
+```bash
+midman ask "check cpu on server01" --profile srv01
+```
+
+Run a named diagnostic action:
+
+```bash
+midman run linux_health --profile srv01
+```
+
+Check a switch interface summary:
+
+```bash
+midman ask "show interfaces on leaf01" --profile leaf01
+```
+
+Execute a playbook in mock mode:
+
+```bash
+midman run --playbook examples/playbooks/daily_checks.yaml --mock
+```
+
+Launch the dashboard:
+
+```bash
+midman interactive --mock
+```
+
+Inspect the supported action catalog:
+
+```bash
+midman catalog
+```
+
+## Installation
+
+`midman` targets Python 3.12.
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+```
+
+## Running Locally
+
+After installation, validate the environment and inspect the CLI:
+
+```bash
+midman doctor
+midman --help
+```
+
+List the available example profiles:
+
+```bash
+midman profiles list
+```
+
+Run the tests:
+
+```bash
+python -m pytest -q
+```
+
+## Dashboard
+
+`midman interactive` launches a Textual-based operations dashboard with:
+
+- `AI Connections` status
+- `Infrastructure Map` tree view
+- `AI Command Interface` chat pane
+- `Activity Log`
+- bottom command bar
+
+Supported dashboard commands:
+
+```text
+/help
+/connect
+/targets
+/probe
+/target-add
+/use <name>
+/logs
+/exit
+```
+
+Example dashboard flow:
+
+```text
+/connect
+openai
+<api-key>
+gpt-5-mini
+
+/target-add
+macbook
+linux
+192.168.1.50
+22
+ilan
+
+/use macbook
+/probe
+check cpu
+```
+
+The dashboard stores local runtime state under `.midman/` and saves user-created targets under `profiles/`. These paths are ignored by Git.
+
+## Mock Mode
+
+Mock mode allows contributors and operators to exercise the parser, CLI, playbooks, and output formatting without making a real network connection.
+
+Use `--mock` when:
+
+- developing locally without access to lab devices
+- testing documentation examples
+- validating playbook structure
+- demonstrating the CLI safely
+
+Example:
+
+```bash
+midman ask "show bgp summary" --profile sample-switch --mock
+```
+
+The dashboard also supports `--mock`:
+
+```bash
+midman interactive --profile sample-linux --mock
+```
+
+## Safety Philosophy
+
+`midman` is intentionally conservative.
+
+- Commands are selected from an explicit allowlist.
+- Diagnostics are read-only by design.
+- Free-form shell execution is not supported.
+- Destructive verbs, shell metacharacters, and configuration-mode patterns are blocked.
+- Management targets are currently limited to safe reachability checks and placeholders for future adapters.
+
+The goal is to make useful diagnostics easy while making accidental write operations difficult. See [SECURITY.md](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/SECURITY.md) for the full security model.
+
+## Roadmap Preview
+
+The project is organized into staged delivery:
+
+- Phase 1: CLI MVP with parser, command catalog, safety layer, SSH execution, profiles, playbooks, and mock mode
+- Phase 2: deeper diagnostics, better parsing, and broader network/vendor support
+- Phase 3: optional LLM-assisted reasoning and smarter troubleshooting guidance
+- Phase 4: agent and collector model for structured telemetry
+- Phase 5: API and frontend platform capabilities
+
+See [docs/ROADMAP.md](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/docs/ROADMAP.md) for detail.
+
+## Contribution Note
+
+Contributions are welcome in code, testing, documentation, playbook design, and safety review. Before opening a pull request, please read [CONTRIBUTING.md](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/CONTRIBUTING.md) and keep the project’s conservative execution model in mind.
+
+## Future Vision
+
+The long-term goal for `midman` is a practical operator interface for infrastructure diagnostics: one that can start with a simple CLI request, reason about intent, choose a safe workflow, and eventually support richer adapters, telemetry, and higher-level analysis across mixed infrastructure environments.
+
+Phase 1 is deliberately narrow. It establishes the execution and safety foundation on which later AI reasoning, management integrations, and platform capabilities can be built.
+
+## Project Documentation
+
+- [CLI reference](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/docs/CLI.md)
+- [Architecture](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/docs/ARCHITECTURE.md)
+- [Playbooks](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/docs/PLAYBOOKS.md)
+- [Roadmap](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/docs/ROADMAP.md)
+- [Security policy](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/SECURITY.md)
+- [Contributing guide](/Users/ilanhaitas/Documents/ NetDoctor/net.doc/CONTRIBUTING.md)

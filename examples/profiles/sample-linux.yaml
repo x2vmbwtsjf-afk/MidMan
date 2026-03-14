@@ -1,0 +1,10 @@
+name: sample-linux
+type: linux
+host: 192.0.2.10
+port: 22
+username: ops
+auth:
+  password_env: MIDMAN_SAMPLE_PASSWORD
+metadata:
+  role: app-server
+

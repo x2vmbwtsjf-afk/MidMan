@@ -1,0 +1,11 @@
+name: daily-checks
+steps:
+  - action: linux_health
+    profile: sample-linux
+  - action: interface_status
+    profile: sample-switch
+  - action: bgp_summary
+    profile: sample-switch
+  - action: management_reachability
+    profile: sample-idrac
+
