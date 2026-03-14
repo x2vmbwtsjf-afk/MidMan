@@ -1,180 +1,151 @@
-# Architecture
+# MidMan Architecture
 
-## System Overview
+MidMan is a CLI-first infrastructure diagnostics tool with a strict control boundary between request interpretation and remote execution. The system is designed so that natural-language input can help select diagnostics, but cannot bypass safety policy.
 
-`MidMan` is a CLI-first infrastructure assistant that connects operator intent to safe infrastructure diagnostics.
-
-The system is organized as a modular pipeline:
-
-- parse a user request
-- map it to a supported action
-- validate that the action is safe for the selected target
-- execute approved diagnostics over SSH or management checks
-- summarize the results in the terminal
-
-Phase 1 is deliberately narrow. It focuses on execution correctness, clear safety boundaries, and a practical operator experience from the command line.
-
-## Core Architecture Diagram
+## Simple Diagram
 
 ```text
-+-------------------+      +---------------------+      +------------------------+
-| User CLI Request  | ---> | AI Intent Parser    | ---> | CLI Orchestrator       |
-| ask / run / etc.  |      | rule-based mapping  |      | profiles + dispatch    |
-+-------------------+      +---------------------+      +-----------+------------+
-                                                                      |
-                                                                      v
-                                                         +------------+------------+
-                                                         | Command Catalog         |
-                                                         | approved actions        |
-                                                         +------------+------------+
-                                                                      |
-                                                                      v
-                                                         +------------+------------+
-                                                         | Safety Layer            |
-                                                         | allowlist + validation  |
-                                                         +------------+------------+
-                                                                      |
-                                                                      v
-                                     +------------------------+-------+------------------------+
-                                     |                        |                                |
-                                     v                        v                                v
-                             +-------+--------+      +--------+--------+              +--------+--------+
-                             | SSH Execution  |      | Network Targets |              | Management      |
-                             | Linux Targets  |      | switches/router |              | reachability    |
-                             +----------------+      +-----------------+              +-----------------+
-                                                                      |
-                                                                      v
-                                                         +------------+------------+
-                                                         | Rich terminal output    |
-                                                         | summaries + results     |
-                                                         +-------------------------+
+Operator Request
+      |
+      v
+CLI Layer
+      |
+      v
+Parser / AI Layer
+      |
+      v
+Safety Engine <----> Command Catalog
+      |
+      v
+Execution Engine
+      |
+      v
+SSH / Management Connectors
+      |
+      v
+Target System
 ```
 
-## Layers
+The important design rule is that the parser proposes actions, the safety engine approves them, and the execution engine runs only approved commands.
 
-## 1. AI Intent Parser
+## CLI Layer
 
-The parser is currently rule-based. It interprets natural language requests and maps them to supported internal actions.
+The CLI layer is the operator-facing entrypoint. It is responsible for:
 
-Examples:
+- parsing commands such as `ask`, `run`, `connect`, `catalog`, and `interactive`
+- loading profiles
+- loading and validating playbooks
+- selecting mock or real execution mode
+- formatting output for terminal use
 
-- `check cpu on server01`
-- `show interfaces on leaf01`
-- `is the idrac reachable`
+This layer should orchestrate the request flow without becoming the home for policy or platform-specific logic.
 
-In Phase 1, the parser does not call an external model. It uses deterministic matching logic so behavior remains inspectable, testable, and stable.
+## Parser / AI Layer
+
+The parser layer maps natural-language requests to supported internal actions.
+
+Current behavior is primarily rule-based and deterministic. Over time, this layer may use optional AI backends to improve intent resolution, but its output should always remain reviewable and non-authoritative.
 
 Responsibilities:
 
-- normalize user phrasing
-- detect likely infrastructure intent
-- choose a supported action
-- return parser confidence and reasoning metadata
+- normalize operator phrasing
+- infer likely infrastructure intent
+- map requests to catalog actions
+- surface reasoning or confidence metadata when useful
 
-## 2. CLI Orchestrator
+## Safety Engine
 
-The CLI orchestrator is the main control layer.
+The safety engine is the enforcement boundary for MidMan.
 
-It handles:
+Responsibilities:
 
-- command-line parsing through Typer
-- profile resolution
-- playbook loading
-- mock mode selection
-- parser invocation
-- execution dispatch
-- terminal formatting
+- reject shell metacharacters and command chaining
+- block destructive or write-oriented patterns
+- reject configuration-mode commands
+- verify target compatibility for a selected action
+- verify that a device command is present in the allowlist
 
-This layer should remain thin enough to understand end-to-end, while still coordinating the full request lifecycle.
+If MidMan is unsure whether a request is safe, it should fail closed.
 
-## 3. Command Catalog
+## Command Catalog
 
-The command catalog defines what `MidMan` knows how to do.
+The command catalog defines what MidMan is allowed to do.
 
-Each action should map to:
+Each action in the catalog should include:
 
 - a stable action name
+- a human-readable description
 - supported target types
-- an approved set of device commands or checks
-- metadata used by the parser and formatter
+- approved remote commands or checks
+- parser keywords and mock-output metadata where relevant
 
-The catalog is a core safety boundary. It prevents the system from drifting into unrestricted command execution.
+This catalog is a core safety boundary. It keeps the tool from turning into unrestricted shell automation.
 
-## 4. Safety Layer
+## Execution Engine
 
-The safety layer validates both user input and resolved actions before execution.
-
-It is responsible for:
-
-- blocking shell metacharacters
-- blocking destructive verbs and write-oriented commands
-- blocking config-mode patterns
-- verifying that actions match the selected target type
-- verifying that remote commands are in the approved allowlist
-
-The expected behavior is to fail closed. If an action or command is uncertain or unsupported, it should be rejected.
-
-## 5. Execution Engine
-
-The execution engine translates a validated action into a concrete execution plan.
+The execution engine converts an approved action into a concrete execution plan.
 
 Responsibilities:
 
-- retrieve the approved commands for an action
-- route the request to the correct execution backend
-- support mock output generation
-- collect command results
-- summarize execution status
+- resolve commands for the chosen action
+- select the correct connector path
+- execute in mock or real mode
+- collect structured results
+- return output that can be rendered in the CLI or TUI
 
-The engine sits between the abstract action model and the concrete remote transport layer.
+The execution engine should not invent commands. It should consume already-approved actions.
 
-## 6. SSH Management Layer
+## SSH Connectors
 
-The transport layer currently includes:
+The connector layer adapts execution to a target class.
+
+Current scope includes:
 
 - SSH execution for Linux targets
 - SSH execution for network devices
 - TCP reachability checks for management endpoints
 
-This is intentionally limited in Phase 1. Management interfaces such as iLO and iDRAC are modeled as future adapter targets, but their deeper vendor-specific workflows are not implemented yet.
+Planned expansion includes more connector-specific behavior for iLO, iDRAC, and other management interfaces.
 
-## 7. Playbooks
+## Profiles System
 
-Playbooks provide a repeatable workflow layer on top of individual actions.
+Profiles describe target connection details and target type metadata.
 
-A playbook can:
+They currently provide:
 
-- define a sequence of approved diagnostic steps
-- point each step at a named profile
-- allow operators to run recurring checks consistently
-- support mock-mode validation during development
+- target name
+- target type
+- host and port
+- username
+- authentication references
+- optional adapter metadata
 
-Playbooks should stay declarative and easy to audit.
+Profiles allow MidMan to keep environment-specific details outside command definitions and playbooks.
 
-## Request Flow
+## Playbooks
 
-The normal request flow is:
+Playbooks are declarative YAML workflows for repeatable diagnostics.
 
-1. A user runs a CLI command such as `midman ask "show bgp summary" --profile edge01`.
-2. The parser detects the likely intent and maps it to a supported action.
-3. The command catalog resolves that action into an approved command group.
-4. The safety layer validates the input text, action, target type, and command set.
-5. The execution engine dispatches the request to SSH or management checks.
-6. The result is summarized and rendered in the terminal with Rich formatting.
+They are intended to:
 
-The same model applies to `run`, `ask`, and playbook execution, with only minor differences in how the initial action is selected.
+- package a sequence of approved actions
+- document the intent of a diagnostic flow
+- support consistent investigations across teams
+- remain easy to review in code review
 
-## Modularity and Future Extension
+Playbooks should reference approved actions rather than embedding arbitrary remote commands.
 
-The codebase is intentionally modular so future features can be added without collapsing boundaries between intent, safety, and execution.
+## Current Source Layout
 
-Likely extension points include:
+The repository currently uses a flat `src/midman/` package with focused modules such as:
 
-- richer parser backends, including optional LLM integration
-- vendor-specific adapters for network operating systems
-- iLO, iDRAC, and BMC command adapters
-- structured result models for downstream APIs
-- telemetry collection and agent workflows
-- multi-step reasoning and recommendation layers
+- `cli.py`
+- `ai_parser.py`
+- `command_catalog.py`
+- `safety.py`
+- `executor.py`
+- `profiles.py`
+- `playbook_schema.py`
+- `connectors.py`
 
-The architecture should preserve one principle as the system grows: intent interpretation must remain separate from execution authority.
+As the project grows, it may make sense to group these into subpackages for `cli`, `ai`, `core`, `connectors`, `safety`, and `playbooks`, but the current layout keeps the implementation simple and stable while the feature set is still forming.

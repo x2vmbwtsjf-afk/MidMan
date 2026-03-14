@@ -1,117 +1,77 @@
 # Roadmap
 
-This roadmap describes a realistic development path for `MidMan`. It is intended to guide contributors, not to promise exact dates or scope guarantees.
+This roadmap describes a practical path for MidMan to grow from a safe CLI utility into a broader operations tool without weakening its control boundaries.
 
 ## Phase 1 — CLI MVP
 
-Goal: establish a safe, usable local CLI for infrastructure diagnostics.
+Goal: establish a dependable local CLI for safe infrastructure diagnostics.
 
 Scope:
 
 - Typer-based CLI commands
-- Rich terminal output
-- SSH execution for supported targets
-- rule-based intent parser
-- command catalog
-- safety validation layer
-- YAML playbooks
-- mock mode
-- saved profiles
+- profile loading and target resolution
+- command catalog and safety validation
+- SSH execution for supported Linux and network checks
+- management reachability checks
+- mock mode and test coverage
 
-Milestone checklist:
+Current focus:
 
-- [x] CLI skeleton and command routing
-- [x] catalog-backed action model
-- [x] read-only safety checks
-- [x] mock execution paths
-- [x] example profiles and playbooks
-- [x] test coverage for parser, safety, executor, and CLI
-- [ ] richer real-device examples
-- [ ] broader command catalog coverage
+- broaden the command catalog for real operator use
+- improve examples and documentation
+- keep the read-only safety model strict
 
-## Phase 2 — Advanced Diagnostics
+## Phase 2 — Playbooks
 
-Goal: improve operational depth and expand supported infrastructure targets.
+Goal: make repeatable troubleshooting workflows first-class.
 
 Scope:
 
-- better parsing for real operator language
-- expanded network device support
-- vendor adapters for common platforms
-- richer device profile options
-- improved playbook structure and reuse
+- validate and document the playbook schema
+- ship a small set of built-in troubleshooting playbooks
+- improve playbook metadata and reuse
+- add stronger tests for playbook execution and validation
 
-Milestone checklist:
+## Phase 3 — AI Parsing Improvements
 
-- [ ] add more diagnostic action groups
-- [ ] support vendor-specific command selection
-- [ ] improve network interface and routing diagnostics
-- [ ] improve profile metadata and authentication options
-- [ ] validate playbooks against a documented schema
-
-## Phase 3 — AI Reasoning
-
-Goal: move beyond intent matching into assisted troubleshooting and explanation.
+Goal: improve how MidMan maps natural-language requests to approved actions.
 
 Scope:
 
-- optional LLM integration
-- smarter intent resolution
-- root-cause suggestion engine
-- conversational CLI mode
+- expand rule-based parser coverage for real operator phrasing
+- add optional pluggable AI backends
+- surface parser confidence and fallback behavior
+- keep parser output auditable before execution
 
-Milestone checklist:
+## Phase 4 — Connectors
 
-- [ ] add pluggable parser backends
-- [ ] support LLM-assisted intent classification
-- [ ] generate structured troubleshooting hints
-- [ ] add iterative question-and-answer workflows in the terminal
-
-## Phase 4 — Agent Layer
-
-Goal: support richer remote diagnostics and structured collection.
+Goal: deepen support for real infrastructure targets beyond generic SSH checks.
 
 Scope:
 
-- remote collectors
-- structured telemetry
-- device adapters
-- reusable data gathering workflows
+- iLO and iDRAC adapter support
+- broader network device coverage
+- connector-specific capability modeling
+- clearer target-type handling for routers, switches, and management interfaces
 
-Milestone checklist:
+## Phase 5 — Interactive TUI
 
-- [ ] define collector protocol or execution model
-- [ ] add structured result export formats
-- [ ] support vendor management adapters
-- [ ] enable richer state collection beyond SSH command output
-
-## Phase 5 — Frontend Platform
-
-Goal: extend `midman` into a broader operational platform.
+Goal: mature the interactive dashboard into a reliable operator interface.
 
 Scope:
 
-- API layer
-- web dashboard
-- execution history
-- collaboration and team features
+- harden the existing Textual workflow
+- improve repeated request handling against a chosen target
+- tighten target selection, logs, and session state behavior
+- keep the CLI as the primary supported interface
 
-Milestone checklist:
+## Phase 6 — API / Integrations
 
-- [ ] define API surface
-- [ ] persist history and run metadata
-- [ ] add dashboard and UI workflows
-- [ ] support multi-user and team-oriented operations
+Goal: expose MidMan capabilities to adjacent tooling without losing safety guarantees.
 
-## Future Ideas
+Scope:
 
-Potential future directions include:
-
-- policy packs for environment-specific safety rules
-- topology-aware diagnostics
-- change-review mode before any write-capable workflows
-- integration with CMDB or inventory systems
-- structured export to incident or observability tools
-- approval workflows for privileged operations
-
-The project should continue to grow in stages. Safety, auditability, and modularity should remain more important than feature velocity.
+- local API surface for integrations
+- structured result export
+- hooks for ticketing, chat, or inventory systems
+- execution history and audit-friendly artifacts

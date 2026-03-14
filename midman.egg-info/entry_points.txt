@@ -1,2 +1,0 @@
-[console_scripts]
-midman = midman.cli:main

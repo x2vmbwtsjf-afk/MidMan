@@ -43,6 +43,20 @@ midman catalog
 midman doctor
 ```
 
+## Adding Commands to the Catalog
+
+Approved actions live in [src/midman/command_catalog.py](src/midman/command_catalog.py) and are enforced by [src/midman/safety.py](src/midman/safety.py).
+
+When adding a new command group or action:
+
+1. add a catalog entry with a stable action name, description, supported target types, and approved command list
+2. keep commands read-only and operationally safe by default
+3. add parser keywords only when the mapping is unambiguous enough to review
+4. update safety tests to cover both accepted and rejected behavior
+5. update documentation and examples if the new action changes supported workflows
+
+If a command would modify state on a target, it should not be added as part of the normal diagnostic catalog.
+
 ## Pull Request Guidelines
 
 Before opening a pull request:
@@ -104,6 +118,13 @@ When contributing a playbook:
 - include any caution text if a check may be expensive or noisy
 
 See [docs/PLAYBOOKS.md](docs/PLAYBOOKS.md) for the recommended structure.
+
+To add a playbook:
+
+1. place the YAML file under `examples/playbooks/` for examples or a future dedicated built-in playbook location for shipped workflows
+2. reuse existing approved actions instead of embedding free-form device commands
+3. keep the playbook narrow in scope and easy to review in a pull request
+4. add or update tests when schema expectations change
 
 ## Safety Guidelines
 

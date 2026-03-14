@@ -10,8 +10,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [
-  { name = "OpenAI Codex" }
+  { name = "MidMan contributors" }
 ]
+keywords = ["ssh", "infrastructure", "networking", "cli", "diagnostics", "operations"]
 dependencies = [
   "paramiko>=3.4.0",
   "pydantic>=2.8.0",
@@ -28,6 +29,11 @@ dev = [
 
 [project.scripts]
 midman = "midman.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/x2vmbwtsjf-afk/MidMan"
+Repository = "https://github.com/x2vmbwtsjf-afk/MidMan"
+Issues = "https://github.com/x2vmbwtsjf-afk/MidMan/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

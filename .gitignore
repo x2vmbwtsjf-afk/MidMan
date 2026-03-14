@@ -1,0 +1,10 @@
+.midman/
+.pytest_cache/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+profiles/

@@ -1,111 +1,93 @@
 # MidMan
 
-CLI infrastructure assistant for servers, networks, and management interfaces.
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/x2vmbwtsjf-afk/MidMan/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/x2vmbwtsjf-afk/MidMan/actions/workflows/ci.yml)
 
-![Python](https://img.shields.io/badge/python-3.12-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Phase](https://img.shields.io/badge/status-Phase%201%20CLI%20MVP-lightgrey)
+MidMan is a CLI-first assistant for infrastructure engineers that translates natural language troubleshooting requests into safe, approved diagnostics over SSH and related management interfaces.
+
+It is built for operators who need help moving quickly across Linux hosts, switches, routers, and BMC-class endpoints, but do not want an automation tool issuing arbitrary remote commands. MidMan treats the CLI as the primary workflow, keeps execution bounded by an allowlist, and makes safety checks a first-class part of the request path.
+
+MidMan is currently an early-stage project. The repository already includes a working CLI, profiles, playbooks, a command catalog, safety validation, mock mode, and tests. The parser, connector depth, and AI-assisted workflows are still evolving.
 
 ![MidMan Dashboard](docs/assets/midman-dashboard.png)
 
-*Interactive infrastructure dashboard preview*
+*Experimental Textual dashboard for interactive operator workflows.*
 
-## Overview
+## What Problem MidMan Solves
 
-`MidMan` is a CLI-first infrastructure assistant that connects natural language requests to safe diagnostic and management workflows. It is designed for engineers who work across Linux hosts, network devices, and management controllers and want a consistent interface for approved operational checks.
+Infrastructure troubleshooting often starts as a plain-language question and ends as a platform-specific series of commands spread across Linux, network devices, and management controllers. That process is repetitive, error-prone, and hard to standardize.
 
-In Phase 1, `MidMan` is intentionally terminal-only. There is no web UI, no hosted control plane, and no free-form remote shell. The current focus is a reliable local CLI that can parse operator intent, map that request to approved actions, validate safety constraints, and execute diagnostics over SSH or management reachability checks.
+MidMan aims to provide a safer operator path:
 
-## Key Features
+- accept a troubleshooting request in plain language
+- map it to a supported diagnostic action
+- validate the action against a command allowlist
+- run only approved, read-only checks
+- keep the workflow in a local CLI that fits how infrastructure teams already operate
+
+## Who It Is For
+
+- SRE and platform teams operating Linux infrastructure
+- network engineers diagnosing switches and routers
+- operators working with iLO, iDRAC, and similar management endpoints
+- incident responders who need fast, repeatable diagnostics
+- teams that want AI assistance without unrestricted remote execution
+
+## Why It Is Safer Than Normal SSH Automation
+
+MidMan is intentionally narrower than a shell wrapper or generic AI agent:
+
+- commands come from a reviewed catalog, not free-form remote text
+- diagnostics are read-only by default
+- destructive verbs and configuration-mode patterns are blocked
+- profiles constrain target type and connection context
+- playbooks package repeatable workflows into auditable YAML
+- mock mode makes it possible to test flows without touching infrastructure
+
+## Features
 
 - CLI-first workflow built with Typer and Rich
-- Textual dashboard for interactive operations
-- AI-style, rule-based intent parser for common infrastructure requests
-- optional AI backend connection for OpenAI, Ollama, or cloud-compatible chat
-- SSH diagnostics with Paramiko for Linux and network targets
-- server and network checks backed by an explicit command catalog
-- safety validation layer with allowlist-only execution
-- YAML playbooks for repeatable diagnostic workflows
-- mock mode for local development, demos, and test runs
-- profiles for saved infrastructure targets
+- natural language request parsing for supported infrastructure intents
+- explicit command catalog for Linux, network, and management checks
+- safety engine with allowlist-only validation
+- SSH execution for Linux and network targets
+- management endpoint reachability checks for BMC-style targets
+- YAML playbooks for repeatable diagnostics
+- saved profiles for common targets
+- mock mode for demos, development, and safe dry runs
+- experimental Textual dashboard for repeated interactive use
 
 ## Architecture Overview
 
-`MidMan` is built around three main layers:
-
-1. `AI parser`
-   Interprets a user request such as `check cpu on server01` and maps it to a supported action.
-
-2. `CLI orchestrator`
-   Resolves profiles, selects approved commands, applies safety checks, runs playbooks, and formats results.
-
-3. `SSH / management layer`
-   Executes approved diagnostics on Linux and network targets over SSH and performs management endpoint reachability checks for iLO, iDRAC, and future BMC adapters.
-
-High-level flow:
+MidMan is organized as a small pipeline with clear control boundaries:
 
 ```text
-Natural language request
-        |
-        v
-Rule-based intent parser
-        |
-        v
-CLI orchestration + command catalog
-        |
-        v
-Safety validation
-        |
-        v
-SSH / management execution
-        |
-        v
-Structured terminal output
+Operator Request
+      |
+      v
+CLI Layer
+      |
+      v
+Parser / AI Layer
+      |
+      v
+Safety Engine <----> Command Catalog
+      |
+      v
+Execution Engine
+      |
+      v
+SSH / Management Connectors
 ```
 
-More detail is available in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The parser may suggest an action, but it does not authorize it. Commands are resolved from the catalog, validated by the safety layer, and only then executed by the transport layer.
 
-## Example Usage
-
-Natural language request against a saved profile:
-
-```bash
-midman ask "check cpu on server01" --profile srv01
-```
-
-Run a named diagnostic action:
-
-```bash
-midman run linux_health --profile srv01
-```
-
-Check a switch interface summary:
-
-```bash
-midman ask "show interfaces on leaf01" --profile leaf01
-```
-
-Execute a playbook in mock mode:
-
-```bash
-midman run --playbook examples/playbooks/daily_checks.yaml --mock
-```
-
-Launch the dashboard:
-
-```bash
-midman interactive --mock
-```
-
-Inspect the supported action catalog:
-
-```bash
-midman catalog
-```
+More detail is available in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Installation
 
-`MidMan` targets Python 3.12.
+MidMan currently targets Python 3.12.
 
 ```bash
 python3.12 -m venv .venv
@@ -113,133 +95,144 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-## Running Locally
+## CLI Usage Examples
 
-After installation, validate the environment and inspect the CLI:
+Inspect the CLI and local environment:
 
 ```bash
-midman doctor
 midman --help
+midman doctor
+midman catalog
 ```
 
-List the available example profiles:
+Run a natural language diagnostic request:
 
 ```bash
-midman profiles list
+midman ask "check cpu on server01" --profile sample-linux
 ```
 
-Run the tests:
+Run a named action directly:
 
 ```bash
-python -m pytest -q
+midman run linux_health --profile sample-linux
 ```
 
-## Dashboard
-
-`midman interactive` launches the MidMan Textual-based operations dashboard with:
-
-- `AI Connections` status
-- `Infrastructure Map` tree view
-- `AI Command Interface` chat pane
-- `Activity Log`
-- bottom command bar
-
-Supported dashboard commands:
-
-```text
-/help
-/connect
-/targets
-/probe
-/target-add
-/use <name>
-/logs
-/exit
-```
-
-Example dashboard flow:
-
-```text
-/connect
-openai
-<api-key>
-gpt-5-mini
-
-/target-add
-macbook
-linux
-192.168.1.50
-22
-ilan
-
-/use macbook
-/probe
-check cpu
-```
-
-The dashboard stores local runtime state under `.midman/` and saves user-created targets under `profiles/`. These paths are ignored by Git.
-
-## Mock Mode
-
-Mock mode allows contributors and operators to exercise the parser, CLI, playbooks, and output formatting without making a real network connection.
-
-Use `--mock` when:
-
-- developing locally without access to lab devices
-- testing documentation examples
-- validating playbook structure
-- demonstrating the CLI safely
-
-Example:
+Run a playbook in mock mode:
 
 ```bash
-midman ask "show bgp summary" --profile sample-switch --mock
+midman run --playbook examples/playbooks/daily_checks.yaml --mock
 ```
 
-The dashboard also supports `--mock`:
+Launch the interactive dashboard:
 
 ```bash
 midman interactive --profile sample-linux --mock
 ```
 
+## Profiles
+
+Profiles define connection details and target metadata for saved infrastructure endpoints.
+
+The current profile model supports:
+
+- `name`
+- `type` such as `linux`, `network`, or `management`
+- `host`
+- `port`
+- `username`
+- `auth`
+- optional metadata and adapter hints
+
+Example:
+
+```yaml
+name: sample-linux
+type: linux
+host: 192.0.2.10
+port: 22
+username: ops
+auth:
+  password_env: MIDMAN_SAMPLE_PASSWORD
+```
+
+MidMan looks for profiles in `profiles/` and `examples/profiles/`.
+
+## Playbooks
+
+Playbooks are YAML documents for repeatable diagnostic workflows. They are intended to encode approved operational checks instead of ad hoc remote command sequences.
+
+Current playbooks support ordered `steps` and may also include richer metadata such as:
+
+- `id`
+- `title`
+- `category`
+- `intents`
+- `command_group`
+- `expected_signals`
+- `follow_up_steps`
+- `caution`
+
+See [docs/PLAYBOOKS.md](docs/PLAYBOOKS.md) for the recommended schema.
+
 ## Safety Philosophy
 
-`MidMan` is intentionally conservative.
+MidMan is meant to diagnose infrastructure, not to administer it.
 
-- Commands are selected from an explicit allowlist.
-- Diagnostics are read-only by design.
 - Free-form shell execution is not supported.
-- Destructive verbs, shell metacharacters, and configuration-mode patterns are blocked.
-- Management targets are currently limited to safe reachability checks and placeholders for future adapters.
+- Approved actions must resolve to allowlisted commands.
+- Read-only behavior is the default design assumption.
+- Shell metacharacters and destructive terms are rejected early.
+- Unsupported or ambiguous requests should fail rather than guess.
 
-The goal is to make useful diagnostics easy while making accidental write operations difficult.
+The current safety model is documented in [SECURITY.md](SECURITY.md).
 
-## Roadmap Preview
+## Example Troubleshooting Session
 
-The project is organized into staged delivery:
+```text
+$ midman ask "show interfaces on leaf01" --profile sample-switch --mock
 
-- Phase 1: CLI MVP with parser, command catalog, safety layer, SSH execution, profiles, playbooks, and mock mode
-- Phase 2: deeper diagnostics, better parsing, and broader network/vendor support
-- Phase 3: optional LLM-assisted reasoning and smarter troubleshooting guidance
-- Phase 4: agent and collector model for structured telemetry
-- Phase 5: API and frontend platform capabilities
+Request accepted: show interfaces on leaf01
+Resolved action: interface_status
+Target: sample-switch (network)
+Safety review: passed
+Execution mode: mock
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for detail.
+Approved commands:
+  - show interfaces status
+  - show ip interface brief
 
-## Contribution Note
+Result summary:
+  - interface inventory returned
+  - no write operations attempted
+```
 
-Contributions are welcome in code, testing, documentation, playbook design, and safety review. Before opening a pull request, please read [CONTRIBUTING.md](CONTRIBUTING.md) and keep the project’s conservative execution model in mind.
+The important behavior is that MidMan resolves the request into a known action and then executes only the commands associated with that action.
 
-## Future Vision
+## Developer Onboarding
 
-The long-term goal for `MidMan` is a practical operator interface for infrastructure diagnostics: one that can start with a simple CLI request, reason about intent, choose a safe workflow, and eventually support richer adapters, telemetry, and higher-level analysis across mixed infrastructure environments.
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+python -m pytest
+midman --help
+```
 
-Phase 1 is deliberately narrow. It establishes the execution and safety foundation on which later AI reasoning, management integrations, and platform capabilities can be built.
+Contributor guidance is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Project Documentation
+## Roadmap
 
-- [CLI reference](docs/CLI.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Playbooks](docs/PLAYBOOKS.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Contributing guide](CONTRIBUTING.md)
+The project roadmap is intentionally incremental:
+
+- Phase 1: CLI MVP
+- Phase 2: Playbooks
+- Phase 3: AI parsing improvements
+- Phase 4: Connectors for iLO, switches, routers, and related targets
+- Phase 5: Interactive TUI hardening
+- Phase 6: API and integrations
+
+See [ROADMAP.md](ROADMAP.md) for the detailed plan.
+
+## License
+
+MidMan is released under the MIT License. See [LICENSE](LICENSE).
